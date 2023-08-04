@@ -12,7 +12,7 @@ CREATE TABLE users (
 	id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( CYCLE INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 99999 CACHE 1 ),
 	name character varying(60) NOT NULL,
   phone_number character varying(16) NOT NULL,
-  password character varying(64) NOT NULL,
+  password character varying(60) NOT NULL,
   successful_login bigint NOT NULL DEFAULT 0,
   CONSTRAINT users_pkey PRIMARY KEY (id),
   CONSTRAINT users_name_key UNIQUE (name),
