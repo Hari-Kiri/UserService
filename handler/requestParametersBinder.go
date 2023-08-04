@@ -34,9 +34,19 @@ type registrationParameters struct {
 	Password    string `json:"password"`
 }
 
+type loginResponse struct {
+	Id    int64  `json:"id"`
+	Token string `json:"token"`
+}
+type loginParameters struct {
+	PhoneNumber string `form:"phoneNumber"`
+	Password    string `form:"password"`
+}
+
 type ServerInterface interface {
 	Hello(ctx echo.Context, params HelloParams) error
 	Registration(ctx echo.Context, params registrationParameters) error
+	Login(ctx echo.Context, params loginParameters) error
 }
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
@@ -59,17 +69,26 @@ func (w *ServerInterfaceWrapper) requestParametersBinder(ctx echo.Context) error
 
 		// Invoke the callback with all the unmarshaled arguments
 		errorResult = w.Handler.Hello(ctx, params)
-
 	case "registration":
 		var parameters registrationParameters
 
+		// Bind json (application/json) data from request body
 		errorBindRequestBody := ctx.Bind(&parameters)
 		if errorBindRequestBody != nil {
 			errorResult = echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter: %s", errorBindRequestBody))
 		}
 
 		errorResult = w.Handler.Registration(ctx, parameters)
+	case "login":
+		var parameters loginParameters
 
+		// Bind form (application/x-www-form-urlencoded) data from request body
+		errorBindRequestBody := ctx.Bind(&parameters)
+		if errorBindRequestBody != nil {
+			errorResult = echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter: %s", errorBindRequestBody))
+		}
+
+		errorResult = w.Handler.Login(ctx, parameters)
 	}
 
 	return errorResult

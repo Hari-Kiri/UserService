@@ -25,3 +25,19 @@ func (r *Repository) InsertUserData(ctx context.Context, input InsertUserDataInp
 	}
 	return
 }
+
+func (r *Repository) GetUserData(ctx context.Context, input GetUserDataInput) (output GetUserDataOutput, err error) {
+	err = r.Db.QueryRowContext(
+		ctx,
+		`SELECT id 
+		FROM database.public.users 
+		WHERE phone_number = $1
+		AND password =$2;`,
+		input.PhoneNumber,
+		input.Password,
+	).Scan(&output.Id)
+	if err != nil {
+		return
+	}
+	return
+}

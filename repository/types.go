@@ -14,7 +14,14 @@ type InsertUserDataInput struct {
 	PhoneNumber string
 	Password    string
 }
-
 type InsertUserDataOutput struct {
+	Id int64
+}
+
+type GetUserDataInput struct {
+	PhoneNumber string
+	Password    string
+}
+type GetUserDataOutput struct {
 	Id int64
 }

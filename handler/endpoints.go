@@ -8,6 +8,7 @@ import (
 	"unicode"
 
 	"github.com/Hari-Kiri/UserService/repository"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
 
@@ -124,13 +125,13 @@ func (s *Server) Registration(ctx echo.Context, parameters registrationParameter
 	var repo = repository.NewRepository(repository.NewRepositoryOptions{
 		Dsn: os.Getenv("DATABASE_URL"),
 	})
-	resultId, errorGetResultId := repo.InsertUserData(ctx.Request().Context(), repository.InsertUserDataInput{
+	result, errorResult := repo.InsertUserData(ctx.Request().Context(), repository.InsertUserDataInput{
 		Name:        parameters.Name,
 		PhoneNumber: parameters.PhoneNumber,
 		Password:    parameters.Password,
 	})
-	if errorGetResultId != nil {
-		fmt.Printf("%s", errorGetResultId)
+	if errorResult != nil {
+		fmt.Printf("%s", errorResult)
 		var errorResponse registrationResponse
 		errorResponse.Id = 0
 		errorResponse.Message = "failed create new user, error: can't create new user data"
@@ -139,8 +140,44 @@ func (s *Server) Registration(ctx echo.Context, parameters registrationParameter
 	}
 
 	var response registrationResponse
-	response.Id = resultId.Id
+	response.Id = result.Id
 	response.Message = "success create new user"
 	response.Response = true
+	return ctx.JSON(http.StatusOK, response)
+}
+
+func (s *Server) Login(ctx echo.Context, parameters loginParameters) error {
+	// Get user data from database
+	var repo = repository.NewRepository(repository.NewRepositoryOptions{
+		Dsn: os.Getenv("DATABASE_URL"),
+	})
+	result, errorResult := repo.GetUserData(ctx.Request().Context(), repository.GetUserDataInput{
+		PhoneNumber: parameters.PhoneNumber,
+		Password:    parameters.Password,
+	})
+	if errorResult != nil {
+		fmt.Printf("%s", errorResult)
+		return ctx.JSON(http.StatusBadRequest, loginResponse{})
+	}
+
+	// Create jwt token
+	rsaPrivateKey, errorParseRsaPrivateKey := jwt.ParseRSAPrivateKeyFromPEM([]byte(rsaPrivateKey))
+	if errorParseRsaPrivateKey != nil {
+		fmt.Printf("%s", errorParseRsaPrivateKey)
+		return ctx.JSON(http.StatusBadRequest, loginResponse{})
+	}
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+		"phoneNumber": parameters.PhoneNumber,
+		"password":    parameters.Password,
+	})
+	jwtTokenString, errorSigning := jwtToken.SignedString(rsaPrivateKey)
+	if errorSigning != nil {
+		fmt.Printf("%s", errorSigning)
+		return ctx.JSON(http.StatusBadRequest, loginResponse{})
+	}
+
+	var response loginResponse
+	response.Id = result.Id
+	response.Token = jwtTokenString
 	return ctx.JSON(http.StatusOK, response)
 }
