@@ -15,4 +15,5 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/hello", wrapper.requestParametersBinder)
 	router.POST(baseURL+"/registration", wrapper.requestParametersBinder)
 	router.POST(baseURL+"/login", wrapper.requestParametersBinder)
+	router.GET(baseURL+"/profile", wrapper.requestParametersBinder)
 }
