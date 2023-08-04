@@ -10,6 +10,7 @@ import (
 	"github.com/Hari-Kiri/UserService/repository"
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // This is just a test endpoint to get you started. Please delete this endpoint.
@@ -77,7 +78,7 @@ func (s *Server) Registration(ctx echo.Context, parameters registrationParameter
 	if passwordLength >= 65 {
 		var errorResponse registrationResponse
 		errorResponse.Id = 0
-		errorResponse.Message = fmt.Sprintf("password parameter value (%s) more than 65 characters", parameters.Password)
+		errorResponse.Message = fmt.Sprintf("password parameter value (%s) more than 64 characters", parameters.Password)
 		errorResponse.Response = false
 		return ctx.JSON(http.StatusBadRequest, errorResponse)
 	}
@@ -121,6 +122,16 @@ func (s *Server) Registration(ctx echo.Context, parameters registrationParameter
 		return ctx.JSON(http.StatusBadRequest, errorResponse)
 	}
 
+	// Hash password
+	hashedPassword, errorHashingPassword := bcrypt.GenerateFromPassword([]byte(parameters.Password), bcrypt.DefaultCost)
+	if errorHashingPassword != nil {
+		var errorResponse registrationResponse
+		errorResponse.Id = 0
+		errorResponse.Message = "failed hashing password"
+		errorResponse.Response = false
+		return ctx.JSON(http.StatusBadRequest, errorResponse)
+	}
+
 	// Insert data to database
 	var repo = repository.NewRepository(repository.NewRepositoryOptions{
 		Dsn: os.Getenv("DATABASE_URL"),
@@ -128,7 +139,7 @@ func (s *Server) Registration(ctx echo.Context, parameters registrationParameter
 	result, errorResult := repo.InsertUserData(ctx.Request().Context(), repository.InsertUserDataInput{
 		Name:        parameters.Name,
 		PhoneNumber: parameters.PhoneNumber,
-		Password:    parameters.Password,
+		Password:    string(hashedPassword),
 	})
 	if errorResult != nil {
 		fmt.Printf("%s", errorResult)
@@ -153,10 +164,17 @@ func (s *Server) Login(ctx echo.Context, parameters loginParameters) error {
 	})
 	result, errorResult := repo.GetUserData(ctx.Request().Context(), repository.GetUserDataInput{
 		PhoneNumber: parameters.PhoneNumber,
-		Password:    parameters.Password,
 	})
 	if errorResult != nil {
 		fmt.Printf("%s", errorResult)
+		return ctx.JSON(http.StatusBadRequest, loginResponse{})
+	}
+
+	// Compare password
+	byteHashedPassword := []byte(result.Password)
+	errorComparePassword := bcrypt.CompareHashAndPassword(byteHashedPassword, []byte(parameters.Password))
+	if errorComparePassword != nil {
+		fmt.Printf("%s", errorComparePassword)
 		return ctx.JSON(http.StatusBadRequest, loginResponse{})
 	}
 
@@ -180,8 +198,8 @@ func (s *Server) Login(ctx echo.Context, parameters loginParameters) error {
 		return ctx.JSON(http.StatusBadRequest, loginResponse{})
 	}
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-		"phoneNumber": parameters.PhoneNumber,
-		"password":    parameters.Password,
+		"id":       result.Id,
+		"password": result.Password,
 	})
 	jwtTokenString, errorSigning := jwtToken.SignedString(rsaPrivateKey)
 	if errorSigning != nil {
@@ -192,5 +210,12 @@ func (s *Server) Login(ctx echo.Context, parameters loginParameters) error {
 	var response loginResponse
 	response.Id = result.Id
 	response.Token = jwtTokenString
+	return ctx.JSON(http.StatusOK, response)
+}
+
+func (s *Server) Profile(ctx echo.Context, parameters profileParameters) error {
+	var response profileResponse
+	response.Name = ""
+	response.PhoneNumber = parameters.Authorization
 	return ctx.JSON(http.StatusOK, response)
 }
