@@ -8,10 +8,16 @@
   */
 
 /** This is test table. Remove this table and replace with your own tables. */
-CREATE TABLE test (
-	id serial PRIMARY KEY,
-	name VARCHAR ( 50 ) UNIQUE NOT NULL,
+CREATE TABLE users (
+	id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( CYCLE INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 99999 CACHE 1 ),
+	name character varying(60) NOT NULL,
+  phone_number character varying(16) NOT NULL,
+  password character varying(64) NOT NULL,
+  successful_login bigint NOT NULL DEFAULT 0,
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_name_key UNIQUE (name),
+  CONSTRAINT users_phone_number UNIQUE (phone_number)
 );
 
-INSERT INTO test (name) VALUES ('test1');
-INSERT INTO test (name) VALUES ('test2');
+-- INSERT INTO test (name) VALUES ('test1');
+-- INSERT INTO test (name) VALUES ('test2');

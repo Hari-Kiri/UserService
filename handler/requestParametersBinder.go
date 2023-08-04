@@ -23,11 +23,10 @@ type HelloParams struct {
 	Id int `form:"id" json:"id"`
 }
 
-type registrationErrorResponse struct {
-	Message string `json:"message"`
-}
 type registrationResponse struct {
-	Message string `json:"message"`
+	Id       int64  `json:"id"`
+	Message  string `json:"message"`
+	Response bool   `json:"response"`
 }
 type registrationParameters struct {
 	PhoneNumber string `json:"phoneNumber"`

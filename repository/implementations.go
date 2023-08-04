@@ -9,3 +9,19 @@ func (r *Repository) GetTestById(ctx context.Context, input GetTestByIdInput) (o
 	}
 	return
 }
+
+func (r *Repository) InsertUserData(ctx context.Context, input InsertUserDataInput) (output InsertUserDataOutput, err error) {
+	err = r.Db.QueryRowContext(
+		ctx,
+		`INSERT INTO database.public.users(name, phone_number, password)
+		VALUES ($1, $2, $3)
+		RETURNING id;`,
+		input.Name,
+		input.PhoneNumber,
+		input.Password,
+	).Scan(&output.Id)
+	if err != nil {
+		return
+	}
+	return
+}
