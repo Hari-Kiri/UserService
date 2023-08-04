@@ -160,6 +160,19 @@ func (s *Server) Login(ctx echo.Context, parameters loginParameters) error {
 		return ctx.JSON(http.StatusBadRequest, loginResponse{})
 	}
 
+	// Update successful login
+	updateSuccessfullLogin, errorUpdateSuccessfullLogin := repo.UpdateSuccessfullLogin(ctx.Request().Context(), repository.UpdateSuccessfullLoginInput{
+		GetUserDataOutput: result,
+	})
+	if errorUpdateSuccessfullLogin != nil {
+		fmt.Printf("%s", errorUpdateSuccessfullLogin)
+		return ctx.JSON(http.StatusBadRequest, loginResponse{})
+	}
+	if updateSuccessfullLogin.Id != result.Id {
+		fmt.Printf("failed update successfull login user id: %d", result.Id)
+		return ctx.JSON(http.StatusBadRequest, loginResponse{})
+	}
+
 	// Create jwt token
 	rsaPrivateKey, errorParseRsaPrivateKey := jwt.ParseRSAPrivateKeyFromPEM([]byte(rsaPrivateKey))
 	if errorParseRsaPrivateKey != nil {

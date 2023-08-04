@@ -29,12 +29,28 @@ func (r *Repository) InsertUserData(ctx context.Context, input InsertUserDataInp
 func (r *Repository) GetUserData(ctx context.Context, input GetUserDataInput) (output GetUserDataOutput, err error) {
 	err = r.Db.QueryRowContext(
 		ctx,
-		`SELECT id 
+		`SELECT id, successful_login 
 		FROM database.public.users 
 		WHERE phone_number = $1
 		AND password =$2;`,
 		input.PhoneNumber,
 		input.Password,
+	).Scan(&output.Id, &output.SuccessfulLogin)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (r *Repository) UpdateSuccessfullLogin(ctx context.Context, input UpdateSuccessfullLoginInput) (output UpdateSuccessfullLoginOutput, err error) {
+	err = r.Db.QueryRowContext(
+		ctx,
+		`UPDATE database.public.users 
+		SET successful_login = $1
+		WHERE id = $2
+		RETURNING id;`,
+		input.SuccessfulLogin+1,
+		input.Id,
 	).Scan(&output.Id)
 	if err != nil {
 		return

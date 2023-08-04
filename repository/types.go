@@ -23,5 +23,13 @@ type GetUserDataInput struct {
 	Password    string
 }
 type GetUserDataOutput struct {
-	Id int64
+	Id              int64
+	SuccessfulLogin int64
+}
+
+type UpdateSuccessfullLoginInput struct {
+	GetUserDataOutput
+}
+type UpdateSuccessfullLoginOutput struct {
+	InsertUserDataOutput
 }
