@@ -43,10 +43,19 @@ type loginParameters struct {
 	Password    string `form:"password"`
 }
 
+type profileResponse struct {
+	Name        string `json:"name"`
+	PhoneNumber string `json:"phoneNumber"`
+}
+type profileParameters struct {
+	Authorization string `header:"Authorization"`
+}
+
 type ServerInterface interface {
 	Hello(ctx echo.Context, params HelloParams) error
 	Registration(ctx echo.Context, params registrationParameters) error
 	Login(ctx echo.Context, params loginParameters) error
+	Profile(ctx echo.Context, params profileParameters) error
 }
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
@@ -89,6 +98,17 @@ func (w *ServerInterfaceWrapper) requestParametersBinder(ctx echo.Context) error
 		}
 
 		errorResult = w.Handler.Login(ctx, parameters)
+	case "profile":
+		var parameters profileParameters
+
+		// Bind request headers data
+		binder := &echo.DefaultBinder{}
+		errorBindRequestHeader := binder.BindHeaders(ctx, &parameters)
+		if errorBindRequestHeader != nil {
+			errorResult = echo.NewHTTPError(http.StatusForbidden, fmt.Sprintf("Invalid format for parameter: %s", errorBindRequestHeader))
+		}
+
+		errorResult = w.Handler.Profile(ctx, parameters)
 	}
 
 	return errorResult

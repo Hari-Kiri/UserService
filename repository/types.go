@@ -33,3 +33,12 @@ type UpdateSuccessfullLoginInput struct {
 type UpdateSuccessfullLoginOutput struct {
 	InsertUserDataOutput
 }
+
+type GetUserProfileInput struct {
+	Id       int64
+	Password string
+}
+type GetUserProfileOutput struct {
+	Name        string
+	PhoneNumber string
+}
