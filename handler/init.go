@@ -6,12 +6,12 @@ import (
 
 var (
 	rsaPrivateKey string
-	// rsaPublicKey  string
+	rsaPublicKey  string
 )
 
 func init() {
 	var errorGenerateRsaKeyPair error
-	rsaPrivateKey, _, errorGenerateRsaKeyPair = goalRsa.NewPemFormatRsaKeyPair(4096)
+	rsaPrivateKey, rsaPublicKey, errorGenerateRsaKeyPair = goalRsa.NewPemFormatRsaKeyPair(4096)
 	if errorGenerateRsaKeyPair != nil {
 		panic(errorGenerateRsaKeyPair)
 	}
