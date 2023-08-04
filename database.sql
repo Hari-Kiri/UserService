@@ -18,6 +18,3 @@ CREATE TABLE users (
   CONSTRAINT users_name_key UNIQUE (name),
   CONSTRAINT users_phone_number UNIQUE (phone_number)
 );
-
--- INSERT INTO test (name) VALUES ('test1');
--- INSERT INTO test (name) VALUES ('test2');
