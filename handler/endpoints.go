@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"unicode"
 
 	"github.com/Hari-Kiri/UserService/repository"
@@ -192,7 +193,7 @@ func (s *Server) Login(ctx echo.Context, parameters loginParameters) error {
 	}
 
 	// Create jwt token
-	rsaPrivateKey, errorParseRsaPrivateKey := jwt.ParseRSAPrivateKeyFromPEM([]byte(rsaPrivateKey))
+	parsedRsaPrivateKey, errorParseRsaPrivateKey := jwt.ParseRSAPrivateKeyFromPEM([]byte(rsaPrivateKey))
 	if errorParseRsaPrivateKey != nil {
 		fmt.Printf("%s", errorParseRsaPrivateKey)
 		return ctx.JSON(http.StatusBadRequest, loginResponse{})
@@ -201,7 +202,7 @@ func (s *Server) Login(ctx echo.Context, parameters loginParameters) error {
 		"id":       result.Id,
 		"password": result.Password,
 	})
-	jwtTokenString, errorSigning := jwtToken.SignedString(rsaPrivateKey)
+	jwtTokenString, errorSigning := jwtToken.SignedString(parsedRsaPrivateKey)
 	if errorSigning != nil {
 		fmt.Printf("%s", errorSigning)
 		return ctx.JSON(http.StatusBadRequest, loginResponse{})
@@ -214,8 +215,49 @@ func (s *Server) Login(ctx echo.Context, parameters loginParameters) error {
 }
 
 func (s *Server) Profile(ctx echo.Context, parameters profileParameters) error {
+	// Parse jwt token
+	parsedRsaPublicKey, errorParseRsaPublicKey := jwt.ParseRSAPublicKeyFromPEM([]byte(rsaPublicKey))
+	if errorParseRsaPublicKey != nil {
+		fmt.Printf("%s", errorParseRsaPublicKey)
+		return ctx.JSON(http.StatusForbidden, profileResponse{})
+	}
+	jwtTokenString := strings.Replace(parameters.Authorization, "Bearer ", "", -1)
+	parsedJwtToken, errorParsingToken := jwt.Parse(jwtTokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return parsedRsaPublicKey, nil
+	})
+	if errorParsingToken != nil {
+		fmt.Printf("%s", errorParsingToken)
+		return ctx.JSON(http.StatusForbidden, profileResponse{})
+	}
+
+	// Get jwt claims
+	var (
+		userId       int64
+		userPassword string
+	)
+	if claims, ok := parsedJwtToken.Claims.(jwt.MapClaims); ok && parsedJwtToken.Valid {
+		userId = int64(claims["id"].(float64))
+		userPassword = claims["password"].(string)
+	}
+
+	// Get profile from database
+	var repo = repository.NewRepository(repository.NewRepositoryOptions{
+		Dsn: os.Getenv("DATABASE_URL"),
+	})
+	result, errorResult := repo.GetUserProfile(ctx.Request().Context(), repository.GetUserProfileInput{
+		Id:       userId,
+		Password: userPassword,
+	})
+	if errorResult != nil {
+		fmt.Printf("%s", errorResult)
+		return ctx.JSON(http.StatusBadRequest, loginResponse{})
+	}
+
 	var response profileResponse
-	response.Name = ""
-	response.PhoneNumber = parameters.Authorization
+	response.Name = result.Name
+	response.PhoneNumber = result.PhoneNumber
 	return ctx.JSON(http.StatusOK, response)
 }
