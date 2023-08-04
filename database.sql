@@ -15,6 +15,5 @@ CREATE TABLE users (
   password character varying(60) NOT NULL,
   successful_login bigint NOT NULL DEFAULT 0,
   CONSTRAINT users_pkey PRIMARY KEY (id),
-  CONSTRAINT users_name_key UNIQUE (name),
   CONSTRAINT users_phone_number UNIQUE (phone_number)
 );
