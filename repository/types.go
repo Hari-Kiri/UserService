@@ -20,11 +20,11 @@ type InsertUserDataOutput struct {
 
 type GetUserDataInput struct {
 	PhoneNumber string
-	Password    string
 }
 type GetUserDataOutput struct {
 	Id              int64
 	SuccessfulLogin int64
+	Password        string
 }
 
 type UpdateSuccessfullLoginInput struct {
