@@ -15,7 +15,7 @@ info:
   license:
     name: MIT
 servers:
-  - url: http://localhost
+  - url: http://localhost:8080
 paths:
   /hello:
     get:
@@ -40,6 +40,127 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /registration:
+    post:
+      summary: Endpoint to register new user.
+      operationId: registration
+      parameters:
+        - name: phoneNumber
+          in: body
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: body
+          required: true
+          schema:
+            type: string
+        - name: password
+          in: body
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success create new user
+          content:
+            application/json:    
+              schema:
+                $ref: "#/components/schemas/registrationResponse"
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/registrationResponse"
+  /login:
+    post:
+      summary: User login endpoint
+      operationId: login
+      parameters:
+        - name: phoneNumber
+          in: formData
+          required: true
+          schema:
+            type: string
+        - name: password
+          in: formData
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: user login success
+          content:
+            application/json:    
+              schema:
+                $ref: "#/components/schemas/loginResponse"
+        '400':
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/loginResponse"
+  /profile:
+    get:
+      summary: Get user profile data endpoint
+      operationId: profile
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: get my profile success
+          content:
+            application/json:    
+              schema:
+                $ref: "#/components/schemas/profileResponse"
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/profileResponse"
+  /update-profile:
+    patch:
+      summary: Update user profile endpoint
+      operationId: update-profile
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: body
+          schema:
+            type: string
+        - name: phoneNumber
+          in: body
+          schema:
+            type: string
+      responses:
+        '200':
+          description: update my profile success
+          content:
+            application/json:    
+              schema:
+                $ref: "#/components/schemas/updateProfileResponse"
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/updateProfileResponse"
+        '409':
+          description: conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/updateProfileResponse"
 components:
   schemas:
     HelloResponse:
@@ -48,6 +169,46 @@ components:
         - message
       properties:
         message:
+          type: string
+    registrationResponse:
+      type: object
+      required:
+        - id
+        - message
+        - response
+      properties:
+        id:
+          type: integer
+        message:
+          type: string
+        response:
+          type: boolean
+    loginResponse:
+      type: object
+      required:
+        - id
+        - token
+      properties:
+        id:
+          type: integer
+        token:
+          type: string
+    profileResponse:
+      type: object
+      required:
+        - name
+        - phoneNumber
+      properties:
+        name:
+          type: string
+        phoneNumber:
+          type: string
+    updateProfileResponse:
+      type: object
+      required:
+        - Authorization
+      properties:
+        Authorization:
           type: string
     ErrorResponse:
       type: object
