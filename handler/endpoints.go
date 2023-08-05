@@ -359,6 +359,10 @@ func (s *Server) UpdateProfile(ctx echo.Context, parameters updateProfileParamet
 		response.Message = fmt.Sprintf("Success update user name to %s.", *parameters.Name)
 	}
 
+	if response.Message == "" {
+		response.Message = "Nothing is updated."
+	}
+
 	response.Id = userId
 	response.Response = true
 	return ctx.JSON(http.StatusOK, response)
