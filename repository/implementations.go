@@ -71,3 +71,39 @@ func (r *Repository) GetUserProfile(ctx context.Context, input GetUserProfileInp
 	}
 	return
 }
+
+func (r *Repository) UpdatePhoneNumber(ctx context.Context, input UpdatePhoneNumberInput) (output UpdatePhoneNumberOutput, err error) {
+	err = r.Db.QueryRowContext(
+		ctx,
+		`UPDATE database.public.users 
+		SET phone_number = $1
+		WHERE id = $2
+		AND password = $3
+		RETURNING id;`,
+		input.PhoneNumber,
+		input.Id,
+		input.Password,
+	).Scan(&output.Id)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (r *Repository) UpdateName(ctx context.Context, input UpdateNameInput) (output UpdateNameOutput, err error) {
+	err = r.Db.QueryRowContext(
+		ctx,
+		`UPDATE database.public.users 
+		SET name = $1
+		WHERE id = $2
+		AND password = $3
+		RETURNING id;`,
+		input.Name,
+		input.Id,
+		input.Password,
+	).Scan(&output.Id)
+	if err != nil {
+		return
+	}
+	return
+}

@@ -51,11 +51,21 @@ type profileParameters struct {
 	Authorization string `header:"Authorization"`
 }
 
+type updateProfileParameters struct {
+	Authorization string  `header:"Authorization"`
+	PhoneNumber   *string `json:"phoneNumber"`
+	Name          *string `json:"name"`
+}
+type updateProfileResponse struct {
+	registrationResponse
+}
+
 type ServerInterface interface {
 	Hello(ctx echo.Context, params HelloParams) error
 	Registration(ctx echo.Context, params registrationParameters) error
 	Login(ctx echo.Context, params loginParameters) error
 	Profile(ctx echo.Context, params profileParameters) error
+	UpdateProfile(ctx echo.Context, params updateProfileParameters) error
 }
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
@@ -109,6 +119,23 @@ func (w *ServerInterfaceWrapper) requestParametersBinder(ctx echo.Context) error
 		}
 
 		errorResult = w.Handler.Profile(ctx, parameters)
+	case "update-profile":
+		var parameters updateProfileParameters
+
+		// Bind request headers data
+		binder := &echo.DefaultBinder{}
+		errorBindRequestHeader := binder.BindHeaders(ctx, &parameters)
+		if errorBindRequestHeader != nil {
+			errorResult = echo.NewHTTPError(http.StatusForbidden, fmt.Sprintf("Invalid format for parameter: %s", errorBindRequestHeader))
+		}
+
+		// Bind json (application/json) data from request body
+		errorBindRequestBody := ctx.Bind(&parameters)
+		if errorBindRequestBody != nil {
+			errorResult = echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter: %s", errorBindRequestBody))
+		}
+
+		errorResult = w.Handler.UpdateProfile(ctx, parameters)
 	}
 
 	return errorResult

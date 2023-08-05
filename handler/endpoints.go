@@ -261,3 +261,105 @@ func (s *Server) Profile(ctx echo.Context, parameters profileParameters) error {
 	response.PhoneNumber = result.PhoneNumber
 	return ctx.JSON(http.StatusOK, response)
 }
+
+func (s *Server) UpdateProfile(ctx echo.Context, parameters updateProfileParameters) error {
+	// Parse jwt token
+	parsedRsaPublicKey, errorParseRsaPublicKey := jwt.ParseRSAPublicKeyFromPEM([]byte(rsaPublicKey))
+	if errorParseRsaPublicKey != nil {
+		fmt.Printf("%s", errorParseRsaPublicKey)
+		return ctx.JSON(http.StatusForbidden, updateProfileResponse{})
+	}
+	jwtTokenString := strings.Replace(parameters.Authorization, "Bearer ", "", -1)
+	parsedJwtToken, errorParsingToken := jwt.Parse(jwtTokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return parsedRsaPublicKey, nil
+	})
+	if errorParsingToken != nil {
+		fmt.Printf("%s", errorParsingToken)
+		return ctx.JSON(http.StatusForbidden, updateProfileResponse{})
+	}
+
+	// Get jwt claims
+	var (
+		userId       int64
+		userPassword string
+	)
+	if claims, ok := parsedJwtToken.Claims.(jwt.MapClaims); ok && parsedJwtToken.Valid {
+		userId = int64(claims["id"].(float64))
+		userPassword = claims["password"].(string)
+	}
+
+	// Get profile from database
+	var repo = repository.NewRepository(repository.NewRepositoryOptions{
+		Dsn: os.Getenv("DATABASE_URL"),
+	})
+	profile, errorGetProfile := repo.GetUserProfile(ctx.Request().Context(), repository.GetUserProfileInput{
+		Id:       userId,
+		Password: userPassword,
+	})
+	if errorGetProfile != nil {
+		fmt.Printf("%s", errorGetProfile)
+		return ctx.JSON(http.StatusBadRequest, updateProfileResponse{})
+	}
+
+	// Conflict of the phone number
+	if parameters.PhoneNumber != nil && *parameters.PhoneNumber == profile.PhoneNumber {
+		fmt.Printf("CONFLICT: phone number can't updated with same string. parameter=%s | database=%s.", *parameters.PhoneNumber, profile.PhoneNumber)
+		return ctx.JSON(http.StatusConflict, updateProfileResponse{})
+	}
+
+	var (
+		response                                updateProfileResponse
+		updatePhoneNumber                       repository.UpdatePhoneNumberOutput
+		updateName                              repository.UpdateNameOutput
+		errorUpdatePhoneNumber, errorUpdateName error
+	)
+	// Update phone number
+	if parameters.PhoneNumber != nil && *parameters.PhoneNumber != profile.PhoneNumber {
+		updatePhoneNumber, errorUpdatePhoneNumber = repo.UpdatePhoneNumber(ctx.Request().Context(), repository.UpdatePhoneNumberInput{
+			Id:          userId,
+			Password:    userPassword,
+			PhoneNumber: *parameters.PhoneNumber,
+		})
+	}
+	if errorUpdatePhoneNumber != nil {
+		fmt.Printf("error update phone number: %s", errorUpdatePhoneNumber)
+		return ctx.JSON(http.StatusInternalServerError, response)
+	}
+	if updatePhoneNumber.Id != 0 && updatePhoneNumber.Id != userId {
+		fmt.Printf("failed update phone number to \"%s\"", *parameters.PhoneNumber)
+		return ctx.JSON(http.StatusInternalServerError, response)
+	}
+	if updatePhoneNumber.Id != 0 && updatePhoneNumber.Id == userId {
+		response.Message = fmt.Sprintf("Success update phone number to %s.", *parameters.PhoneNumber)
+	}
+
+	// Update name
+	if parameters.Name != nil {
+		updateName, errorUpdateName = repo.UpdateName(ctx.Request().Context(), repository.UpdateNameInput{
+			Id:       userId,
+			Password: userPassword,
+			Name:     *parameters.Name,
+		})
+	}
+	if errorUpdateName != nil {
+		fmt.Printf("error update user name: %s", errorUpdateName)
+		return ctx.JSON(http.StatusInternalServerError, response)
+	}
+	if updateName.Id != 0 && updateName.Id != userId {
+		fmt.Printf("failed update user name to \"%s\"", *parameters.Name)
+		return ctx.JSON(http.StatusInternalServerError, response)
+	}
+	if updateName.Id != 0 && updateName.Id == userId && response.Message != "" {
+		response.Message = fmt.Sprintf("%s Success update user name to %s.", response.Message, *parameters.Name)
+	}
+	if updateName.Id != 0 && updateName.Id == userId && response.Message == "" {
+		response.Message = fmt.Sprintf("Success update user name to %s.", *parameters.Name)
+	}
+
+	response.Id = userId
+	response.Response = true
+	return ctx.JSON(http.StatusOK, response)
+}

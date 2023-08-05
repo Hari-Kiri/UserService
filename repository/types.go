@@ -42,3 +42,21 @@ type GetUserProfileOutput struct {
 	Name        string
 	PhoneNumber string
 }
+
+type UpdatePhoneNumberInput struct {
+	Id          int64
+	Password    string
+	PhoneNumber string
+}
+type UpdatePhoneNumberOutput struct {
+	Id int64
+}
+
+type UpdateNameInput struct {
+	Id       int64
+	Password string
+	Name     string
+}
+type UpdateNameOutput struct {
+	Id int64
+}
